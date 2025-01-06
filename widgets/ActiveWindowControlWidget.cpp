@@ -259,6 +259,20 @@ void ActiveWindowControlWidget::minButtonClicked() {
 }
 
 void ActiveWindowControlWidget::closeButtonClicked() {
+     if (this->currActiveWinId <= 0) {
+        qDebug() << "No valid window ID found for closing";
+        return;
+    }
+    
+    if (XUtils::checkIfBadWindow(this->currActiveWinId)) {
+        qDebug() << "Invalid window ID:" << this->currActiveWinId;
+        return;
+    }
+    
+    qDebug() << "Attempting to close window with ID:" << this->currActiveWinId;
+    
+    // 尝试使用KWindowSystem关闭窗口
+    NETRootInfo(QX11Info::connection(), NET::CloseWindow).closeWindowRequest(this->currActiveWinId);
     this->m_appInter->CloseWindow(this->currActiveWinId);
 }
 
