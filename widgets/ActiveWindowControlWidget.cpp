@@ -1,3 +1,13 @@
+/**
+ * @brief 活动窗口控制组件
+ * 
+ * 该组件负责:
+ * 1. 显示当前活动窗口的标题、图标和应用名称
+ * 2. 提供窗口的最大化/最小化/关闭控制按钮
+ * 3. 显示和处理全局菜单
+ * 4. 处理窗口拖拽等交互操作
+ */
+
 //
 // Created by septemberhx on 2020/5/26.
 //
@@ -16,6 +26,12 @@
 #include <QDesktopWidget>
 #include <iostream>
 
+/**
+ * @brief 构造函数
+ * @param parent 父组件
+ * 
+ * 初始化UI组件、信号连接和各种控制参数
+ */
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     : QWidget(parent)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
@@ -112,6 +128,17 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_buttonWidget->hide();
 }
 
+/**
+ * @brief 更新当前活动窗口的信息
+ * 
+ * 获取并更新:
+ * - 窗口ID
+ * - 窗口标题
+ * - 应用图标
+ * - 应用名称
+ * - 控制按钮状态
+ * - 菜单状态
+ */
 void ActiveWindowControlWidget::activeWindowInfoChanged() {
     int activeWinId = XUtils::getFocusWindowId();
     if (activeWinId < 0) {
@@ -213,6 +240,10 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     this->m_appMenuModel->setWinId(this->currActiveWinId);
 }
 
+/**
+ * @brief 设置窗口控制按钮的可见性
+ * @param visible 是否可见
+ */
 void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
     if (CustomSettings::instance()->isShowControlButtons()) {
         if (visible) {
@@ -237,6 +268,11 @@ void ActiveWindowControlWidget::leaveEvent(QEvent *event) {
     QWidget::leaveEvent(event);
 }
 
+/**
+ * @brief 处理最大化按钮点击事件
+ * 
+ * 根据当前窗口状态切换最大化/还原
+ */
 void ActiveWindowControlWidget::maxButtonClicked() {
     if (XUtils::checkIfWinMaximum(this->currActiveWinId)) {
         XUtils::unmaximizeWindow(this->currActiveWinId);
@@ -254,10 +290,18 @@ void ActiveWindowControlWidget::maxButtonClicked() {
 //    this->activeWindowInfoChanged();
 }
 
+/**
+ * @brief 处理最小化按钮点击事件
+ */
 void ActiveWindowControlWidget::minButtonClicked() {
     KWindowSystem::self()->minimizeWindow(this->currActiveWinId);
 }
 
+/**
+ * @brief 处理关闭按钮点击事件
+ * 
+ * 通过X11和DBus接口关闭当前活动窗口
+ */
 void ActiveWindowControlWidget::closeButtonClicked() {
      if (this->currActiveWinId <= 0) {
         qDebug() << "No valid window ID found for closing";
@@ -287,6 +331,11 @@ void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     QWidget::mouseDoubleClickEvent(event);
 }
 
+/**
+ * @brief 更新全局菜单
+ * 
+ * 根据应用菜单模型重新构建菜单项
+ */
 void ActiveWindowControlWidget::updateMenu() {
     qDebug() << "ActiveWindowControlWidget#updateMenu() starts, current winID reported by menuModel is " << this->m_appMenuModel->winId()
              << ", current winID reported by panel is " << this->currActiveWinId;
@@ -320,6 +369,11 @@ void ActiveWindowControlWidget::updateMenu() {
     qDebug() << "ActiveWindowControlWidget#updateMenu() ends";
 }
 
+/**
+ * @brief 处理菜单项点击事件
+ * 
+ * 显示对应的子菜单或执行菜单动作
+ */
 void ActiveWindowControlWidget::menuLabelClicked() {
     auto *label = dynamic_cast<QClickableLabel*>(sender());
     this->trigger(label, this->buttonLabelList.indexOf(label));
@@ -340,6 +394,11 @@ QAction *ActiveWindowControlWidget::createAction(int idx) const {
     }
 }
 
+/**
+ * @brief 触发指定菜单项
+ * @param ctx 菜单标签控件
+ * @param idx 菜单索引
+ */
 void ActiveWindowControlWidget::trigger(QClickableLabel *ctx, int idx) {
     qDebug() << "ActiveWindowControlWidget#trigger() entered";
 
@@ -453,6 +512,12 @@ void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
     QWidget::mouseMoveEvent(event);
 }
 
+/**
+ * @brief 应用自定义设置
+ * @param settings 自定义设置对象
+ * 
+ * 应用字体、颜色、显示模式等设置
+ */
 void ActiveWindowControlWidget::applyCustomSettings(const CustomSettings& settings) {
     // title
     QPalette palette = this->m_winTitleLabel->palette();
@@ -578,6 +643,12 @@ void ActiveWindowControlWidget::setMenuVisible(bool visible) {
     }
 }
 
+/**
+ * @brief 组织和布局菜单项
+ * 
+ * 根据可用空间计算需要显示的菜单项,
+ * 超出部分放入"更多"子菜单中
+ */
 void ActiveWindowControlWidget::organizeMenu() {
     QMutexLocker locker(&this->organizeMenuMutex);
 
@@ -683,6 +754,10 @@ void ActiveWindowControlWidget::organizeMenu() {
     qDebug() << "ActiveWindowControlWidget#organizeMenu() ended";
 }
 
+/**
+ * @brief 计算菜单可用宽度
+ * @return 可用宽度值
+ */
 int ActiveWindowControlWidget::menuAvailableWidth() {
     // calculate left space for menus
     int usedWidth = this->m_layout->contentsMargins().left() + this->m_layout->contentsMargins().right();
